@@ -1,10 +1,9 @@
 import * as satellite from 'satellite.js';
 import * as Cesium from 'cesium';
 
-let satEntities = [];
-
+// On garde l'import public ici car Celestrak est très restrictif sur le CORS
 export async function loadSatellites(viewer) {
-    console.log("OSINT // Orbital Tracking: Déblocage du flux Celestrak...");
+    console.log("OSINT // ORBITAL: Synchronisation Celestrak...");
     try {
         const proxy = "https://corsproxy.io/?";
         const target = "https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=tle";

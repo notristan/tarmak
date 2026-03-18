@@ -1,10 +1,13 @@
 import * as Cesium from 'cesium';
 
+// 📡 IMPORTATION DE LA CONFIGURATION DYNAMIQUE
+import { TARMAK_CONFIG } from '../main.js';
+
 let shipEntities = new Map();
 let ws = null;
 let clickHandler = null;
 let isLocationSelected = false; 
-let detectCount = 0; // Ajout du compteur
+let detectCount = 0; 
 const MAX_SHIPS = 1500;
 
 const shipIconSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2300e5ff'%3E%3Cpath d='M20 21c-1.39 0-2.78-.47-4-1.32-2.44 1.71-5.56 1.71-8 0C6.78 20.53 5.39 21 4 21H2v2h2c1.38 0 2.74-.35 4-.99 2.52 1.29 5.48 1.29 8 0 1.26.65 2.62.99 4 .99h2v-2h-2zM3.95 19H4c1.6 0 3.02-.88 4-2 .98 1.12 2.4 2 4 2s3.02-.88 4-2c.98 1.12 2.4 2 4 2h.05l1.89-6.68c.08-.26.06-.54-.06-.78s-.34-.42-.6-.5L20 10.62V6c0-1.1-.9-2-2-2h-3V1H9v3H6c-1.1 0-2 .9-2 2v4.62l-1.29.42c-.26.08-.48.26-.6.5s-.15.52-.06.78L3.95 19zM6 6h12v3.73l-6 1.96-6-1.96V6zm4-3h4v1h-4V3z'/%3E%3C/svg%3E";
@@ -14,21 +17,25 @@ export function loadMaritimeTraffic(viewer) {
     detectCount = 0;
     createSearchUI(viewer);
 
-    ws = new WebSocket('ws://localhost:8080');
+    // 🔗 CONNEXION AU WEBSOCKET DYNAMIQUE (LOCAL OU CLOUD)
+    console.log(`📡 MARITIME_RADAR // CONNECTING TO: ${TARMAK_CONFIG.WS_BASE}`);
+    ws = new WebSocket(TARMAK_CONFIG.WS_BASE);
 
     ws.onmessage = (event) => {
         if (!isLocationSelected) return; 
         try {
             const data = JSON.parse(event.data);
             if (data.Message && data.Message.PositionReport) {
-                // Incrémentation du compteur
                 detectCount++;
                 const counterEl = document.getElementById('ship-counter');
                 if (counterEl) counterEl.innerText = `PING RADAR : ${detectCount}`;
-                
                 processShip(viewer, data);
             }
         } catch (e) {}
+    };
+
+    ws.onerror = (err) => {
+        console.error("🚨 MARITIME_WS_ERROR: Échec de connexion au relai tactique.");
     };
 
     if (!clickHandler) {
@@ -123,7 +130,7 @@ async function performSearch(viewer) {
     if (!input) return;
 
     status.innerText = "STATUS: GEOCODING...";
-    detectCount = 0; // Remise à zéro du compteur à chaque recherche
+    detectCount = 0; 
     counterEl.innerText = "PING RADAR : 0";
 
     try {
@@ -146,6 +153,7 @@ async function performSearch(viewer) {
                     shipEntities.clear();
                     
                     isLocationSelected = true;
+                    // ✅ UTILISATION DE LA CONNEXION WEBSOCKET ÉTABLIE
                     if (ws && ws.readyState === WebSocket.OPEN) {
                         ws.send(JSON.stringify({ type: 'update_bbox', bbox: bbox }));
                     }

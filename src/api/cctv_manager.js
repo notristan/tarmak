@@ -1,4 +1,6 @@
 import * as Cesium from 'cesium';
+// 📡 IMPORTATION DE LA CONFIGURATION DYNAMIQUE
+import { TARMAK_CONFIG } from '../main.js';
 
 let cctvEntities = [];
 let liveFeedInterval = null;
@@ -6,10 +8,10 @@ let liveFeedInterval = null;
 const CCTV_ICON = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwMGU1ZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjMgN2wtNyA1IDcgNXoiLz48cmVjdCB4PSIxIiB5PSI1IiB3aWR0aD0iMTUiIGhlaWdodD0iMTQiIHJ4PSIyIiByeT0iMiIvPjwvc3ZnPg==';
 
 export async function loadCCTV(viewer) {
-    console.log("OSINT // CCTV Lyon: Accès au réseau global via Node Local...");
+    console.log("OSINT // CCTV Lyon: Tentative d'accès à la matrice vidéo...");
     
-    // On passe par ton relai local
-    const targetUrl = "http://localhost:8082/cctv-data";
+    // 🔗 UTILISATION DE L'API CENTRALE
+    const targetUrl = `${TARMAK_CONFIG.API_BASE}/cctv-data`;
 
     try {
         const response = await fetch(targetUrl);
@@ -18,17 +20,16 @@ export async function loadCCTV(viewer) {
         const data = await response.json();
         
         if (!data.features || data.features.length === 0) {
-            console.warn("OSINT // CCTV: Aucun capteur détecté sur ce flux.");
+            console.warn("OSINT // CCTV: Réseau vide ou accès refusé par le relai.");
             return;
         }
 
         clearCCTV(viewer);
 
         data.features.forEach(feature => {
-            const coords = feature.geometry.coordinates; // [lon, lat]
+            const coords = feature.geometry.coordinates; 
             const props = feature.properties;
 
-            // CORRECTION ICI : Le champ s'appelle 'url' tout court
             if (!props.url) return;
 
             const entity = viewer.entities.add({
@@ -38,7 +39,7 @@ export async function loadCCTV(viewer) {
                 properties: {
                     gid: props.gid,
                     name: props.nom,
-                    url: props.url, // CORRECTION ICI
+                    url: props.url, 
                     commune: props.commune || "INCONNU"
                 },
                 
@@ -62,14 +63,12 @@ export async function loadCCTV(viewer) {
             cctvEntities.push(entity);
         });
         
-        console.log(`OSINT // CCTV Lyon: ${cctvEntities.length} caméras connectées au réseau.`);
+        console.log(`OSINT // CCTV Lyon: ${cctvEntities.length} capteurs synchronisés.`);
     } catch (err) { 
-        console.error("OSINT // CCTV AFS Error: " + err.message); 
+        console.error("🚨 OSINT // CCTV_RELAY_ERROR: " + err.message); 
     }
 
-    // ==========================================
-    // 🎯 GESTION DU CLIC (Flux Vidéo)
-    // ==========================================
+    // Gestion du clic (Identique)
     const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
     handler.setInputAction((click) => {
         const picked = viewer.scene.pick(click.position);

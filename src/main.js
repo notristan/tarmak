@@ -2,25 +2,40 @@ import { initEngine } from './core/engine';
 import { initHUD } from './ui/hud';
 import { initOSINTPanel } from './ui/osint_panel'; 
 import { initShaderBar } from './ui/shader_bar'; 
-// 1. L'import est bien là
 import { initTicker } from './ui/ticker_manager';
 import { loadSatellites } from './api/satellite_manager';
 import * as Cesium from 'cesium';
 import './assets/styles.css';
 
+// ==========================================
+// 🌐 CONFIGURATION TACTIQUE (AUTO-DETECTION)
+// ==========================================
+// Remplace 'tarmak-backend.onrender.com' par ton URL Render réelle une fois déployée
+export const TARMAK_CONFIG = {
+    API_BASE: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:8080'
+        : 'https://tarmak-backend.onrender.com',
+    get WS_BASE() {
+        return this.API_BASE.replace('http', 'ws');
+    }
+};
+
+// On l'attache au window pour y accéder facilement depuis les anciens modules si besoin
+window.TARMAK_CONFIG = TARMAK_CONFIG;
+
 document.addEventListener('DOMContentLoaded', async () => {
     try {
+        console.log(`📡 CONNECTING TO BACKEND: ${TARMAK_CONFIG.API_BASE}`);
+        
         const viewer = await initEngine('cesiumContainer');
         const coordHUD = initHUD();
         
         // Initialisation des interfaces
         initOSINTPanel(viewer); 
         initShaderBar(viewer); 
-        
-        // 2. L'APPEL AU TICKER EST ICI
         initTicker();
 
-        // Création de la fonction globale de vol pour les boutons du bas
+        // Fonction globale de vol
         window.flyTo = (lon, lat, alt) => {
             viewer.camera.flyTo({
                 destination: Cesium.Cartesian3.fromDegrees(lon, lat, alt),
@@ -33,12 +48,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         };
 
-        // On force le démarrage sur Lyon
+        // Démarrage tactique sur Lyon
         window.flyTo(4.8322, 45.7578, 1200);
 
+        // Chargement orbital
         loadSatellites(viewer).catch(err => console.error("OSINT Error:", err));
 
-        // Mise à jour de la télémétrie en temps réel
+        // Télémétrie en temps réel
         viewer.scene.postRender.addEventListener(() => {
             const pos = viewer.camera.positionCartographic;
             if (pos) {
@@ -58,7 +74,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
 
-        console.log("TARMAK // LYON_HUB // SYSTEM_ONLINE");
+        console.log("TARMAK // SYSTEM_ONLINE // RADAR_READY");
     } catch (error) {
         console.error("TARMAK // BOOT_FAILURE:", error);
     }

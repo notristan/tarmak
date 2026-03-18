@@ -1,4 +1,5 @@
 import * as Cesium from 'cesium';
+import { TARMAK_CONFIG } from '../main.js'; // 📡 Lien Bunker
 
 let flightEntities = new Map();
 let updateInterval = null;
@@ -7,26 +8,25 @@ let clickHandler = null;
 const flightIconSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ff6600'%3E%3Cpath d='M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z'/%3E%3C/svg%3E";
 
 export function loadFlights(viewer) {
-    console.log("OSINT // AIR_TRAFFIC: Initialisation du radar ADSB.lol...");
+    console.log(`OSINT // AIR_TRAFFIC: Branchement radar via ${TARMAK_CONFIG.API_BASE}`);
 
     async function fetchFlights() {
         const center = getCameraCenter(viewer);
-        
+        const radiusNm = 250;
+
         try {
-            // TENTATIVE UNIQUE : ADSB.lol via corsproxy.io
-            const radiusNm = 250;
-            const targetUrl = `https://api.adsb.lol/v2/lat/${center.lat}/lon/${center.lon}/dist/${radiusNm}`;
-            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+            // ✅ PLUS DE PROXY TIERS : On utilise ton propre tunnel Backend
+            // La route /radar/ sur ton server.js s'occupe de contacter ADSB.lol
+            const targetUrl = `${TARMAK_CONFIG.API_BASE}/radar/lat/${center.lat}/lon/${center.lon}/dist/${radiusNm}`;
             
-            const response = await fetch(proxyUrl);
-            if (!response.ok) throw new Error("ADSB.lol injoignable via Proxy");
+            const response = await fetch(targetUrl);
+            if (!response.ok) throw new Error("Signal ADS-B perdu via Relai.");
             
             const data = await response.json();
-            if (data.ac) {
-                processFlights(viewer, data.ac);
-            }
+            if (data.ac) processFlights(viewer, data.ac);
+
         } catch (e) {
-            console.error("OSINT // Erreur radar ADSB :", e.message);
+            console.error("🚨 OSINT // AIR_RELAY_ERROR:", e.message);
         }
     }
 

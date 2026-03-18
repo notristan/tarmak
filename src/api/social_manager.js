@@ -1,21 +1,23 @@
 import * as Cesium from 'cesium';
+// 📡 IMPORTATION DE LA CONFIGURATION DYNAMIQUE
+import { TARMAK_CONFIG } from '../main.js';
 
 let socialEntities = [];
 let clickHandler = null;
 let liveInterval = null;
-let drawnMsgIds = new Set(); // Empêche de redessiner les vieux messages
+let drawnMsgIds = new Set(); 
 
 export async function loadSocialFeed(viewer) {
-    console.log("OSINT // SOCMINT: Connexion au relai Telegram en continu (Port 8083)...");
+    console.log(`OSINT // SOCMINT: Branchement sur le relai via ${TARMAK_CONFIG.API_BASE}...`);
     clearSocialFeed(viewer);
 
     const fetchAndDraw = async () => {
         try {
-            const response = await fetch('http://localhost:8083/api/socmint');
+            // 🔗 APPEL À L'API CENTRALE (FINI LE PORT 8083)
+            const response = await fetch(`${TARMAK_CONFIG.API_BASE}/api/socmint`);
             const liveData = await response.json();
 
             liveData.forEach(msg => {
-                // Si l'alerte est déjà sur la carte, on passe (évite les doublons)
                 if (drawnMsgIds.has(msg.id)) return;
                 drawnMsgIds.add(msg.id);
 
@@ -24,14 +26,12 @@ export async function loadSocialFeed(viewer) {
                 else if (msg.severity === "WARNING") baseColor = Cesium.Color.ORANGE;
                 else baseColor = Cesium.Color.DEEPSKYBLUE;
 
-                // Pulsation radar continue
                 const pulsingAlpha = new Cesium.CallbackProperty((time, result) => {
                     const seconds = viewer.clock.currentTime.secondsOfDay;
                     const alpha = 0.5 + Math.sin(seconds * 5) * 0.5;
                     return baseColor.withAlpha(alpha);
                 }, false);
 
-                // On donne un ID unique préfixé par 'SOCMINT-' pour que le clic le reconnaisse
                 const entityId = `SOCMINT-${msg.id}`;
 
                 const entity = viewer.entities.add({
@@ -57,7 +57,6 @@ export async function loadSocialFeed(viewer) {
                     }
                 });
 
-                // Laser de repérage vertical
                 viewer.entities.add({
                     id: `${entityId}-LINE`,
                     polyline: {
@@ -78,17 +77,12 @@ export async function loadSocialFeed(viewer) {
             });
 
         } catch (error) {
-            console.error("OSINT // SOCMINT ERREUR: Serveur injoignable. Le relai Node.js est-il lancé ?");
+            console.error("🚨 OSINT // SOCMINT_RELAY_ERROR: Impossible de récupérer le flux Telegram.");
         }
     };
 
-    // 1. Premier chargement immédiat
     await fetchAndDraw();
-    
-    // 2. Boucle de mise à jour (toutes les 30 secondes) EN CONTINU
     liveInterval = setInterval(fetchAndDraw, 30000);
-
-    // 3. Activation de la zone de clic
     setupSocialClickHandler(viewer);
 }
 

@@ -4,7 +4,9 @@ import path from 'path';
 
 export default defineConfig({
   resolve: {
-    alias: { '@': path.resolve(__dirname, './src') }
+    alias: {
+      '@': path.resolve(__dirname, './src')
+    }
   },
   plugins: [
     viteStaticCopy({
@@ -16,5 +18,21 @@ export default defineConfig({
       ],
     }),
   ],
-  define: { CESIUM_BASE_URL: JSON.stringify('/cesium/') },
+  define: {
+    CESIUM_BASE_URL: JSON.stringify('/cesium/')
+  },
+  build: {
+    // On ignore le dossier server pour éviter que Vite n'essaie de le "bundler"
+    outDir: 'dist',
+    emptyOutDir: true,
+    rollupOptions: {
+      external: [/^server\/.*/]
+    }
+  },
+  server: {
+    // Port standard pour ton interface
+    port: 5173,
+    // Permet de tester sur mobile via ton IP locale si besoin
+    host: true 
+  }
 });
