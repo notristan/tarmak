@@ -35,6 +35,20 @@ function getSeverity(text) {
 }
 
 // ==========================================
+// 🛰️ RELAI SATELLITE (TLE)
+// ==========================================
+app.get('/satellites-tle', async (req, res) => {
+    try {
+        console.log("OSINT // BUNKER: Interception du flux Celestrak...");
+        const response = await axios.get("https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=tle");
+        res.send(response.data);
+    } catch (e) {
+        console.error("🚨 OSINT // BUNKER: Échec Celestrak");
+        res.status(500).send("Celestrak Error");
+    }
+});
+
+// ==========================================
 // ✈️ RELAIS DATA (ADSB & CCTV)
 // ==========================================
 app.get('/radar/*', async (req, res) => {

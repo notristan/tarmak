@@ -1,16 +1,20 @@
 import * as satellite from 'satellite.js';
 import * as Cesium from 'cesium';
+// 📡 IMPORTATION DE LA CONFIGURATION DYNAMIQUE
+import { TARMAK_CONFIG } from '../main.js';
 
-// On garde l'import public ici car Celestrak est très restrictif sur le CORS
+let satEntities = [];
+
 export async function loadSatellites(viewer) {
-    console.log("OSINT // ORBITAL: Synchronisation Celestrak...");
+    console.log(`OSINT // ORBITAL: Synchronisation via Bunker (${TARMAK_CONFIG.API_BASE})...`);
+    
     try {
-        const proxy = "https://corsproxy.io/?";
-        const target = "https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=tle";
+        // ✅ PLUS DE PROXY EXTERNE : On tape directement sur ton serveur Render
+        const target = `${TARMAK_CONFIG.API_BASE}/satellites-tle`;
         
-        const response = await fetch(proxy + encodeURIComponent(target));
+        const response = await fetch(target);
         
-        if (!response.ok) throw new Error(`Serveur saturé: ${response.status}`);
+        if (!response.ok) throw new Error(`Signal satellite perdu via Relai: ${response.status}`);
         
         const rawTle = await response.text();
         const lines = rawTle.split('\n').filter(l => l.trim().length > 0);
@@ -18,7 +22,7 @@ export async function loadSatellites(viewer) {
         satEntities.forEach(e => viewer.entities.remove(e));
         satEntities = [];
 
-        // On charge environ 600 satellites pour garder d'excellentes performances avec les orbites
+        // Traitement des données TLE (identique)
         for (let i = 0; i < 1800; i += 3) { 
             if (!lines[i]) continue;
             const name = lines[i].trim();
@@ -26,7 +30,7 @@ export async function loadSatellites(viewer) {
         }
         console.log(`OSINT // Orbital Tracking: ${satEntities.length} systèmes modélisés.`);
     } catch (err) { 
-        console.error("OSINT // SAT Error: Verrouillage serveur persistant.", err); 
+        console.error("🚨 OSINT // SAT_RELAY_ERROR:", err.message); 
     }
 }
 
