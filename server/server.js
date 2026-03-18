@@ -24,8 +24,8 @@ async function geocodeLocation(placeName) {
     } catch (e) { return null; }
 }
 
-const CRITICAL_WORDS = ['strike', 'missile', 'attack', 'explosion', 'dead', 'war', 'intercept'];
-const WARNING_WORDS = ['deployed', 'troops', 'border', 'tension', 'drone', 'alert'];
+const CRITICAL_WORDS = ['strike', 'missile', 'attack', 'explosion', 'dead', 'war', 'intercept', 'kharkiv', 'kyiv', 'gaza'];
+const WARNING_WORDS = ['deployed', 'troops', 'border', 'tension', 'drone', 'alert', 'military'];
 
 function getSeverity(text) {
     const lower = text.toLowerCase();
@@ -39,12 +39,12 @@ function getSeverity(text) {
 // ==========================================
 app.get('/satellites-tle', async (req, res) => {
     try {
-        console.log("OSINT // BUNKER: Interception du flux Celestrak...");
+        console.log("OSINT // BUNKER: Requête TLE transmise à Celestrak...");
         const response = await axios.get("https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=tle");
         res.send(response.data);
     } catch (e) {
-        console.error("🚨 OSINT // BUNKER: Échec Celestrak");
-        res.status(500).send("Celestrak Error");
+        console.error("🚨 OSINT // BUNKER: Erreur Celestrak");
+        res.status(500).send("Erreur Celestrak");
     }
 });
 
@@ -71,63 +71,101 @@ app.get('/cctv-data', async (req, res) => {
 // 📡 SOCMINT (TELEGRAM MONITOR)
 // ==========================================
 let globalOsintFeed = [];
-const CHANNELS = ['Faytuks', 'clashreport', 'Liveuamap', 'disclosetv'];
+const CHANNELS = ['Faytuks', 'clashreport', 'Liveuamap', 'disclosetv', 'DDGeopolitics'];
 
 async function scanTelegram() {
-    console.log("OSINT // SOCMINT: Scanning...");
+    console.log("OSINT // SOCMINT: Lancement du scan des canaux...");
     let newEvents = [];
+    
     for (const channel of CHANNELS) {
         try {
             const res = await axios.get(`https://t.me/s/${channel}`);
             const $ = cheerio.load(res.data);
-            const messages = $('.tgme_widget_message').slice(-10).toArray();
+            const messages = $('.tgme_widget_message').slice(-8).toArray();
 
             for (const msg of messages) {
                 const text = $(msg).find('.tgme_widget_message_text').text();
-                if (!text || text.length < 15) continue;
+                if (!text || text.length < 20) continue;
                 
                 const places = nlp(text).places().out('array');
                 if (places.length > 0) {
                     const coords = await geocodeLocation(places[0]);
                     if (coords) {
                         newEvents.push({
-                            id: $(msg).attr('data-post'),
+                            id: $(msg).attr('data-post') || Math.random().toString(36).substr(2, 9),
                             author: channel.toUpperCase(),
+                            avatar: channel.charAt(0).toUpperCase(),
+                            source: `t.me/${channel}`,
                             timestamp: new Date().toISOString(),
                             lat: coords.lat, lon: coords.lon,
-                            text: text, severity: getSeverity(text)
+                            text: text.substring(0, 280), // On limite pour l'UI
+                            severity: getSeverity(text),
+                            media: text.includes('video') || text.includes('photo')
                         });
                     }
                 }
             }
-        } catch (e) {}
+        } catch (e) {
+            console.error(`🚨 OSINT // SOCMINT: Erreur sur le canal ${channel}`);
+        }
     }
+    
+    // On garde les 50 plus récents
     globalOsintFeed = [...newEvents, ...globalOsintFeed].slice(0, 50);
+    console.log(`OSINT // SOCMINT: Scan terminé. ${newEvents.length} nouveaux renseignements géolocalisés.`);
 }
-setInterval(scanTelegram, 300000); // Toutes les 5 mins
+
+// Cycle de scan (Toutes les 5 mins)
+setInterval(scanTelegram, 300000);
+
 app.get('/api/socmint', (req, res) => res.json(globalOsintFeed));
 
 // ==========================================
 // 🚢 MARITIME (WEBSOCKET BRIDGE)
 // ==========================================
 wss.on('connection', (localClient) => {
+    console.log("⚓ MARITIME // BUNKER: Nouvelle liaison WebSocket établie.");
     let aisSocket = null;
+
     localClient.on('message', (msg) => {
-        const data = JSON.parse(msg);
-        if (data.type === 'update_bbox') {
-            if (aisSocket) aisSocket.terminate();
-            aisSocket = new WebSocket("wss://stream.aisstream.io/v0/stream");
-            aisSocket.on('open', () => {
-                aisSocket.send(JSON.stringify({
-                    APIKey: process.env.AIS_API_KEY || "0e93bc164fe17cf85fdcbc491c015c0aaa86a039",
-                    BoundingBoxes: [data.bbox],
-                    FilterMessageTypes: ["PositionReport"]
-                }));
-            });
-            aisSocket.on('message', (aisData) => localClient.send(aisData.toString()));
-        }
+        try {
+            const data = JSON.parse(msg);
+            if (data.type === 'update_bbox') {
+                if (aisSocket) aisSocket.terminate();
+                
+                aisSocket = new WebSocket("wss://stream.aisstream.io/v0/stream");
+                
+                aisSocket.on('open', () => {
+                    aisSocket.send(JSON.stringify({
+                        APIKey: process.env.AIS_API_KEY || "0e93bc164fe17cf85fdcbc491c015c0aaa86a039",
+                        BoundingBoxes: [data.bbox],
+                        FilterMessageTypes: ["PositionReport"]
+                    }));
+                });
+
+                aisSocket.on('message', (aisData) => {
+                    if (localClient.readyState === WebSocket.OPEN) {
+                        localClient.send(aisData.toString());
+                    }
+                });
+            }
+        } catch (e) { console.error("🚨 MARITIME // ERROR:", e.message); }
     });
-    localClient.on('close', () => aisSocket?.terminate());
+
+    localClient.on('close', () => {
+        console.log("⚓ MARITIME // BUNKER: Liaison coupée.");
+        aisSocket?.terminate();
+    });
 });
 
-server.listen(PORT, () => console.log(`🚀 TARMAK_BUNKER_ONLINE // PORT: ${PORT}`));
+// ==========================================
+// 🚀 STARTUP SEQUENCE
+// ==========================================
+server.listen(PORT, () => {
+    console.log(`🚀 TARMAK_BUNKER_ONLINE // PORT: ${PORT}`);
+    console.log(`📡 URL_SATELLITES: /satellites-tle`);
+    console.log(`📡 URL_SOCMINT: /api/socmint`);
+    
+    // FORCE LE PREMIER SCAN IMMÉDIATEMENT
+    scanTelegram();
+});
