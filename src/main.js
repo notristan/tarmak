@@ -8,19 +8,19 @@ import * as Cesium from 'cesium';
 import './assets/styles.css';
 
 // ==========================================
-// 🌐 CONFIGURATION TACTIQUE (AUTO-DETECTION)
+// 🌐 CONFIGURATION TACTIQUE (LIVE RENDER)
 // ==========================================
-// Remplace 'tarmak-backend.onrender.com' par ton URL Render réelle une fois déployée
 export const TARMAK_CONFIG = {
     API_BASE: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
         ? 'http://localhost:8080'
         : 'https://tarmak-backend.onrender.com',
     get WS_BASE() {
-        return this.API_BASE.replace('http', 'ws');
+        // Gère proprement le passage de HTTPS à WSS pour le cloud
+        return this.API_BASE.replace('https', 'wss').replace('http', 'ws');
     }
 };
 
-// On l'attache au window pour y accéder facilement depuis les anciens modules si besoin
+// Injection globale pour les modules legacy
 window.TARMAK_CONFIG = TARMAK_CONFIG;
 
 document.addEventListener('DOMContentLoaded', async () => {
