@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TARMAK - Spy Satellite Simulator</title>
+    <link rel="stylesheet" href="src/styles.css">
+</head>
+<body>
+
+    <div id="tarmak-top-bar">
+        <div class="ticker-badge">
+            <span class="pulsing-dot"></span> BREAKING
+        </div>
+        <div class="ticker-wrapper">
+            <div class="ticker-content" id="ticker-content">
+                </div>
+        </div>
+        <div class="ticker-sys-status">
+            <span style="color: #00ff41;">●</span> SYS: SECURE
+        </div>
+    </div>
+
+    <div id="cesiumContainer"></div>
+
+    <div id="lens-overlay">
+        <div class="reticle-center"></div>
+    </div>
+
+    <aside id="panel-left" class="dashboard-panel">
+        <div class="tarmak-brand-container">
+            <div class="tarmak-logo-row">
+                <svg class="tarmak-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                </svg>
+                <h1 class="tarmak-title">TARMAK</h1>
+            </div>
+            <div class="tarmak-classification">
+                NO PLACE LEFT BEHIND<br>
+                TOP SECRET // SI-TK // NOFORN
+            </div>
+        </div>
+
+        <header>DATA_FUSION // SYSTEM_ACTIVE</header>
+        <section class="feed-group">
+            <div class="layer-control">
+                <label>ORBITAL_TRACKING (TLE)</label>
+                <input type="checkbox" id="toggle-satellites" checked>
+            </div>
+            <div class="layer-control">
+                <label>AIR_TRAFFIC (HYBRID)</label>
+                <input type="checkbox" id="toggle-flights">
+            </div>
+            <div class="layer-control">
+                <label>MARITIME_TRAFFIC (AIS)</label>
+                <input type="checkbox" id="toggle-maritime">
+            </div>
+            <div class="layer-control">
+                <label>GROUND_FLOW (OSM)</label>
+                <input type="checkbox" id="toggle-traffic">
+            </div>
+            <div class="layer-control">
+                <label>SEISMIC_ACTIVITY (USGS)</label>
+                <input type="checkbox" id="toggle-seismic">
+            </div>
+            <div class="layer-control">
+                <label>LIVE_CCTV_NODES</label>
+                <input type="checkbox" id="toggle-cctv">
+            </div>
+            <div class="layer-control">
+                <label>ATMOSPHERIC_DATA (WX)</label>
+                <input type="checkbox" id="toggle-weather">
+            </div>
+            <div class="layer-control">
+                <label>GNSS_JAMMING (EW_LAYER)</label>
+                <input type="checkbox" id="toggle-gpsjam">
+            </div>
+            <div class="layer-control">
+                <label>COUNTRY_BORDERS (GEOJSON)</label>
+                <input type="checkbox" id="toggle-borders">
+            </div>
+            <div class="layer-control">
+                <label>LIVE_ISS_FEED (SEN 4K)</label>
+                <input type="checkbox" id="toggle-iss">
+            </div>
+            <div class="layer-control">
+                <label>SOCMINT_EVENTS (TELEGRAM)</label>
+                <input type="checkbox" id="toggle-social">
+            </div>
+        </section>
+    </aside>
+
+    <div id="cctv-control-panel" class="cctv-panel">
+        <header>
+            <span id="active-cam-id">CAM_FEED_01</span>
+            <span style="float:right; cursor:pointer;" onclick="this.parentElement.parentElement.style.display='none'">[X]</span>
+        </header>
+        
+        <div class="cctv-preview">
+            <div class="scanline"></div>
+            <div class="live-tag">● REC LIVE</div>
+            <img id="cam-feed-img" src="" referrerpolicy="no-referrer" style="width:100%; height:100%; object-fit:cover; display:none;">
+            <video autoplay muted loop id="cam-feed-vid" style="width:100%; height:100%; object-fit:cover; opacity: 0.3;">
+                <source src="https://assets.mixkit.co/videos/preview/mixkit-city-traffic-at-night-in-a-busy-street-3453-large.mp4">
+            </video>
+        </div>
+
+        <div class="cctv-slider-group">
+            <label>PAN</label>
+            <input type="range" id="slider-cam-heading" min="0" max="360" value="0">
+        </div>
+        <div class="cctv-slider-group">
+            <label>TILT</label>
+            <input type="range" id="slider-cam-pitch" min="-90" max="0" value="-20">
+        </div>
+        <div class="cctv-slider-group">
+            <label>FOV</label>
+            <input type="range" id="slider-cam-fov" min="10" max="120" value="60">
+        </div>
+    </div>
+
+    <aside id="panel-right" class="dashboard-panel">
+        <header>TELEMETRY_DATA</header>
+        <div id="telemetry-stats">
+            <p>LAT: <span id="val-lat">0.00</span></p>
+            <p>LON: <span id="val-lon">0.00</span></p>
+            <p>ALT: <span id="val-alt">0km</span></p>
+        </div>
+        <hr>
+        <section class="fx-controls">
+            <div class="layer-control">
+                <label>PIXELATION</label>
+                <input type="range" id="slider-pixel" min="0" max="100" value="0">
+            </div>
+            <div class="layer-control">
+                <label>BLOOM</label>
+                <input type="range" id="slider-bloom" min="0" max="100" value="20">
+            </div>
+        </section>
+    </aside>
+
+    <footer id="panel-bottom">
+        <div class="destinations-bar">
+            <button onclick="window.flyTo(4.8322, 45.7578, 1200)">LYON_HUB</button>
+            <button onclick="window.flyTo(-74.006, 40.7128, 1500)">NEW_YORK</button>
+            <button onclick="window.flyTo(-0.076, 51.505, 1500)">LONDON</button>
+            <button onclick="window.flyTo(139.69, 35.68, 1500)">TOKYO</button>
+        </div>
+        <div class="shader-pipeline">
+            <button class="shader-btn active" data-shader="normal">NORMAL</button>
+            <button class="shader-btn" data-shader="crt">CRT</button>
+            <button class="shader-btn" data-shader="nvg">NVG</button>
+            <button class="shader-btn" data-shader="flir">FLIR</button>
+            <button class="shader-btn" data-shader="anime">ANIME</button>
+            <button class="shader-btn" data-shader="noir">NOIR</button>
+            <button class="shader-btn" data-shader="snow">SNOW</button>
+        </div>
+    </footer>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>
