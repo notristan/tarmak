@@ -5,7 +5,7 @@ import { TARMAK_CONFIG } from '../main.js';
 let shipsEntities = new Map();
 let socket = null;
 
-export function loadMaritime(viewer) {
+export function loadMaritimeTraffic(viewer) {
     console.log(`OSINT // NAVAL: Connexion au Sonar via ${TARMAK_CONFIG.WS_BASE}...`);
 
     // 🔗 UTILISATION DU BON TUNNEL WEBSOCKET
