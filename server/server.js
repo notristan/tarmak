@@ -7,7 +7,12 @@ import * as cheerio from 'cheerio';
 import nlp from 'compromise';
 
 const app = express();
-app.use(cors());
+// On ouvre les vannes pour que ton interface spatiale puisse pomper la data
+app.use(cors({
+    origin: '*', // Autorise toutes les requêtes (idéal pour un portfolio)
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 

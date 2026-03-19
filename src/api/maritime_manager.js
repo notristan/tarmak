@@ -1,27 +1,22 @@
 import * as Cesium from 'cesium';
-
-// 📡 IMPORTATION DE LA CONFIGURATION DYNAMIQUE
+// 📡 IMPORTATION DE LA CONFIGURATION
 import { TARMAK_CONFIG } from '../main.js';
 
-let shipEntities = new Map();
-let ws = null;
-let clickHandler = null;
-let isLocationSelected = false; 
-let detectCount = 0; 
-const MAX_SHIPS = 1500;
+let shipsEntities = new Map();
+let socket = null;
 
-const shipIconSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2300e5ff'%3E%3Cpath d='M20 21c-1.39 0-2.78-.47-4-1.32-2.44 1.71-5.56 1.71-8 0C6.78 20.53 5.39 21 4 21H2v2h2c1.38 0 2.74-.35 4-.99 2.52 1.29 5.48 1.29 8 0 1.26.65 2.62.99 4 .99h2v-2h-2zM3.95 19H4c1.6 0 3.02-.88 4-2 .98 1.12 2.4 2 4 2s3.02-.88 4-2c.98 1.12 2.4 2 4 2h.05l1.89-6.68c.08-.26.06-.54-.06-.78s-.34-.42-.6-.5L20 10.62V6c0-1.1-.9-2-2-2h-3V1H9v3H6c-1.1 0-2 .9-2 2v4.62l-1.29.42c-.26.08-.48.26-.6.5s-.15.52-.06.78L3.95 19zM6 6h12v3.73l-6 1.96-6-1.96V6zm4-3h4v1h-4V3z'/%3E%3C/svg%3E";
+export function loadMaritime(viewer) {
+    console.log(`OSINT // NAVAL: Connexion au Sonar via ${TARMAK_CONFIG.WS_BASE}...`);
 
-export function loadMaritimeTraffic(viewer) {
-    isLocationSelected = false;
-    detectCount = 0;
-    createSearchUI(viewer);
+    // 🔗 UTILISATION DU BON TUNNEL WEBSOCKET
+    socket = new WebSocket(TARMAK_CONFIG.WS_BASE);
 
-    // 🔗 CONNEXION AU WEBSOCKET DYNAMIQUE (LOCAL OU CLOUD)
-    console.log(`📡 MARITIME_RADAR // CONNECTING TO: ${TARMAK_CONFIG.WS_BASE}`);
-    ws = new WebSocket(TARMAK_CONFIG.WS_BASE);
+    socket.onopen = () => {
+        console.log("OSINT // NAVAL: Liaison WebSocket établie avec le Bunker.");
+        sendBoundingBox(viewer);
+    };
 
-    ws.onmessage = (event) => {
+    socket.onmessage = (event) => {
         if (!isLocationSelected) return; 
         try {
             const data = JSON.parse(event.data);
