@@ -1,0 +1,334 @@
+:root {
+    --osint-green: #00ff41;
+    --osint-orange: #ff9800;
+    --osint-blue: #00e5ff;
+    --panel-bg: rgba(0, 15, 0, 0.4); 
+    --font-main: 'Monaco', 'Courier New', monospace;
+}
+
+html, body, #cesiumContainer {
+    width: 100%; height: 100%;
+    margin: 0; padding: 0; overflow: hidden;
+    background-color: black; font-family: var(--font-main);
+}
+
+/* --- PANNEAUX EN GLASSOMORPHISME --- */
+.dashboard-panel, .cctv-panel {
+    position: absolute;
+    z-index: 1000 !important;
+    padding: 15px;
+    border-radius: 12px;
+    background: var(--panel-bg) !important;
+    backdrop-filter: blur(12px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+    border: 1px solid rgba(0, 229, 255, 0.15) !important; 
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+    color: var(--osint-blue);
+    text-transform: uppercase;
+}
+
+/* Ajustement spécifique pour les panneaux existants (Descendus à 45px pour le Ticker) */
+#panel-left { top: 45px; left: 30px; width: 240px; border-color: rgba(0, 255, 65, 0.15) !important; color: var(--osint-green); }
+#panel-right { top: 45px; right: 30px; width: 240px; border-color: rgba(255, 152, 0, 0.15) !important; color: var(--osint-orange); }
+
+/* Nouveau Panneau CCTV Tactique */
+.cctv-panel {
+    bottom: 150px; left: 30px;
+    width: 280px;
+    display: none;
+}
+
+/* ========================================= */
+/* 🌐 BRANDING TARMAK (Style WorldView)      */
+/* ========================================= */
+.tarmak-brand-container {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(0, 255, 65, 0.2);
+}
+
+.tarmak-logo-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.tarmak-logo {
+    width: 26px;
+    height: 26px;
+    fill: var(--osint-blue); 
+    filter: drop-shadow(0 0 8px var(--osint-blue));
+    animation: slow-spin 20s linear infinite;
+}
+
+@keyframes slow-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.tarmak-title {
+    margin: 0;
+    font-size: 24px;
+    font-family: var(--font-main);
+    color: #ffffff;
+    letter-spacing: 8px; 
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+    font-weight: normal;
+}
+
+.tarmak-classification {
+    font-size: 9px;
+    color: #888;
+    line-height: 1.6;
+    letter-spacing: 1px;
+}
+
+/* Le header qui suit la classification */
+#panel-left header {
+    font-size: 11px; font-weight: bold; margin-bottom: 12px;
+    border-bottom: none; 
+    padding-bottom: 6px;
+    letter-spacing: 1px;
+    opacity: 0.8;
+}
+
+#panel-right header {
+    font-size: 11px; font-weight: bold; margin-bottom: 12px;
+    border-bottom: 1px solid currentColor; padding-bottom: 6px;
+    letter-spacing: 1px;
+}
+
+.layer-control, .cctv-slider-group {
+    display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: 8px; font-size: 10px;
+}
+
+input[type="checkbox"], input[type="range"] { accent-color: var(--osint-blue); cursor: pointer; }
+
+/* --- INTERFACE CCTV --- */
+.cctv-preview {
+    width: 100%; height: 140px;
+    background: #000; border: 1px solid rgba(0, 229, 255, 0.3);
+    position: relative; overflow: hidden; margin: 10px 0;
+}
+
+.cctv-preview img, .cctv-preview video {
+    width: 100%; height: 100%; object-fit: cover;
+    filter: brightness(0.6) sepia(1) hue-rotate(140deg) contrast(1.2);
+}
+
+.scanline {
+    width: 100%; height: 100%;
+    background: linear-gradient(to bottom, transparent 50%, rgba(0, 229, 255, 0.05) 51%);
+    background-size: 100% 4px;
+    position: absolute; top: 0; left: 0; pointer-events: none;
+    animation: scrollScan 8s linear infinite;
+}
+
+@keyframes scrollScan { from { background-position: 0 0; } to { background-position: 0 100%; } }
+
+.live-tag {
+    position: absolute; top: 8px; left: 8px;
+    color: #ff0000; font-size: 9px; font-weight: bold;
+    animation: blink 1s steps(2, start) infinite;
+}
+
+@keyframes blink { to { visibility: hidden; } }
+
+/* --- LENTILLE & FOOTER --- */
+#lens-overlay {
+    position: absolute; top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    pointer-events: none; z-index: 500;
+    background: radial-gradient(circle 380px at center, transparent 94%, rgba(0, 0, 0, 0.92) 100%);
+}
+#lens-overlay::before, #lens-overlay::after {
+    content: ""; position: absolute;
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
+    border: 1px solid var(--osint-green); opacity: 0.25;
+}
+#lens-overlay::before { width: 700px; height: 700px; border-radius: 50%; }
+#lens-overlay::after {
+    width: 120px; height: 120px;
+    background: 
+        linear-gradient(to right, var(--osint-green) 1px, transparent 1px) 50% 50% / 100% 1px no-repeat,
+        linear-gradient(to bottom, var(--osint-green) 1px, transparent 1px) 50% 50% / 1px 100% no-repeat;
+}
+
+#panel-bottom {
+    position: absolute; bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2000; display: flex; flex-direction: column;
+    align-items: center; gap: 12px;
+}
+
+.destinations-bar, .shader-pipeline {
+    display: flex; gap: 8px; 
+    background: rgba(0, 15, 0, 0.7);
+    backdrop-filter: blur(8px);
+    padding: 8px; border-radius: 6px; 
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.shader-btn, .destinations-bar button {
+    background: #080808; border: 1px solid #333;
+    color: var(--osint-green); font-family: var(--font-main);
+    font-size: 9px; padding: 7px 14px; cursor: pointer; transition: 0.2s;
+}
+
+.shader-btn:hover, .shader-btn.active {
+    background: var(--osint-green); color: black; border-color: var(--osint-green);
+    box-shadow: 0 0 10px var(--osint-green);
+}
+
+/* ========================================= */
+/* ⏱️ CSS TACTIQUE POUR LA TIMELINE CESIUM  */
+/* ========================================= */
+.cesium-viewer-timelineContainer {
+    bottom: 0 !important;
+    left: 170px !important;
+    background: rgba(5, 10, 15, 0.8) !important;
+    backdrop-filter: blur(5px);
+    border-top: 1px solid rgba(0, 229, 255, 0.5) !important;
+    z-index: 1500;
+}
+
+.cesium-timeline-bar {
+    background: rgba(0, 229, 255, 0.1) !important;
+}
+
+.cesium-timeline-needle {
+    background: var(--osint-orange) !important;
+    width: 2px !important;
+    box-shadow: 0 0 10px var(--osint-orange);
+}
+
+.cesium-viewer-animationContainer {
+    background: rgba(5, 10, 15, 0.8) !important;
+    backdrop-filter: blur(5px);
+    border-right: 1px solid rgba(0, 229, 255, 0.5) !important;
+    border-top: 1px solid rgba(0, 229, 255, 0.5) !important;
+    box-shadow: 5px -5px 20px rgba(0, 0, 0, 0.5);
+    z-index: 1500;
+}
+
+.cesium-animation-rectButton, .cesium-animation-buttonMain {
+    fill: var(--osint-blue) !important;
+}
+
+.cesium-animation-rectButton:hover, .cesium-animation-buttonMain:hover {
+    fill: var(--osint-orange) !important;
+}
+
+.cesium-timeline-ticLabel {
+    color: var(--osint-blue) !important;
+    font-family: var(--font-main) !important;
+    font-size: 11px !important;
+}
+
+/* ========================================= */
+/* 🚨 TOP TICKER BAR (Style Polyglobe)       */
+/* ========================================= */
+#tarmak-top-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 32px;
+    background: #08080a;
+    border-bottom: 1px solid #222;
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 11px;
+    color: #ddd;
+    overflow: hidden;
+}
+
+.ticker-badge {
+    background: rgba(255, 0, 60, 0.15);
+    color: #ff003c;
+    font-weight: bold;
+    padding: 0 15px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    border-right: 1px solid #222;
+    letter-spacing: 1px;
+    min-width: max-content;
+    text-transform: uppercase;
+    font-family: var(--font-main);
+}
+
+.pulsing-dot {
+    width: 6px;
+    height: 6px;
+    background: #ff003c;
+    border-radius: 50%;
+    margin-right: 8px;
+    box-shadow: 0 0 8px #ff003c;
+    animation: pulse-red 1.5s infinite;
+}
+
+@keyframes pulse-red {
+    0% { opacity: 1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 1; }
+}
+
+.ticker-wrapper {
+    flex-grow: 1;
+    overflow: hidden;
+    position: relative;
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.ticker-content {
+    display: flex;
+    white-space: nowrap;
+    animation: scroll-ticker 90s linear infinite;
+}
+
+.ticker-content:hover {
+    animation-play-state: paused;
+}
+
+@keyframes scroll-ticker {
+    0% { transform: translateX(10%); }
+    100% { transform: translateX(-100%); }
+}
+
+.ticker-item {
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    border-right: 1px solid #333;
+}
+
+.ticker-prob {
+    margin-left: 10px;
+    font-weight: bold;
+    font-family: var(--font-main);
+    font-size: 11px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.prob-high { color: #00ff41; }
+.prob-med { color: #ff9800; }
+.prob-low { color: #ff003c; }
+
+.ticker-sys-status {
+    padding: 0 15px;
+    border-left: 1px solid #222;
+    font-family: var(--font-main);
+    font-weight: bold;
+    color: #666;
+    min-width: max-content;
+}
