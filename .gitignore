@@ -8,11 +8,13 @@ dist
 # Vercel
 .vercel
 
-# Environment variables
+# Environment variables — NEVER commit these
 .env
 .env.local
 .env.production
 .env.development
+server/.env
+server/.env.local
 
 # OS
 .DS_Store
